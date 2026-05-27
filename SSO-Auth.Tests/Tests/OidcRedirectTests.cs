@@ -5,7 +5,7 @@ using Xunit;
 namespace Jellyfin.Plugin.SSO_Auth.Tests.Tests;
 
 [Collection("Jellyfin")]
-public class OidcRedirectTests : IAsyncLifetime
+public class OidcRedirectTests
 {
     private readonly JellyfinFixture _fixture;
 
@@ -13,10 +13,6 @@ public class OidcRedirectTests : IAsyncLifetime
     {
         _fixture = fixture;
     }
-
-    public Task InitializeAsync() => _fixture.ResetAsync();
-
-    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task Start_RedirectsToDexWithPkce()

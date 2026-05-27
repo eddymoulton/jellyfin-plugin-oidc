@@ -6,7 +6,7 @@ using Xunit;
 namespace Jellyfin.Plugin.SSO_Auth.Tests.Tests;
 
 [Collection("Jellyfin")]
-public class OidcLoginTests : IAsyncLifetime
+public class OidcLoginTests
 {
     private readonly JellyfinFixture _fixture;
 
@@ -14,10 +14,6 @@ public class OidcLoginTests : IAsyncLifetime
     {
         _fixture = fixture;
     }
-
-    public Task InitializeAsync() => _fixture.ResetAsync();
-
-    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task RegularUser_LoginSucceeds_AndIsNotAdmin()
