@@ -1,0 +1,52 @@
+issuer: http://dex.localtest.me:5556/dex
+
+storage:
+  type: memory
+
+web:
+  http: 0.0.0.0:5556
+
+oauth2:
+  skipApprovalScreen: true
+
+staticClients:
+  - id: jellyfin-oid
+    name: Jellyfin
+    secret: dev-secret
+    redirectURIs:
+      - http://localhost:8096/sso/OID/redirect/dex
+
+enablePasswordDB: true
+
+# Password for every user below is the literal string "password".
+# Hash is bcrypt cost-10 of "password" — copy of the example hash from
+# https://github.com/dexidp/dex/blob/v2.45.1/examples/config-dev.yaml
+staticPasswords:
+  - email: admin@test.local
+    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+    username: admin
+    name: Admin User
+    emailVerified: true
+    preferredUsername: admin
+    userID: 00000000-0000-0000-0000-000000000001
+    groups:
+      - jellyfin-admin
+
+  - email: user@test.local
+    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+    username: user
+    name: Regular User
+    emailVerified: true
+    preferredUsername: user
+    userID: 00000000-0000-0000-0000-000000000002
+    groups:
+      - jellyfin-users
+
+  - email: noaccess@test.local
+    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+    username: noaccess
+    name: No Access User
+    emailVerified: true
+    preferredUsername: noaccess
+    userID: 00000000-0000-0000-0000-000000000003
+    groups: []

@@ -50,4 +50,39 @@
     <CodeAnalysisRuleSet>../jellyfin.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
+  <!--
+    Jellyfin ships its own copies of MediaBrowser.*, Jellyfin.*, Emby.* and
+    Microsoft.Extensions.* assemblies.  When these are also bundled inside the
+    plugin directory the runtime creates two separate assembly-identity contexts,
+    which breaks DI resolution (e.g. ILogger<SSOController> or ISessionManager
+    cannot be satisfied).  Remove the duplicate host-provided assemblies from the
+    publish output so that the host versions are used at runtime.
+  -->
+  <Target Name="RemoveHostProvidedAssemblies" AfterTargets="Publish">
+    <ItemGroup>
+      <_HostProvidedAssemblies Include="
+        $(PublishDir)Emby.Naming.dll;
+        $(PublishDir)Jellyfin.Data.dll;
+        $(PublishDir)Jellyfin.Database.Implementations.dll;
+        $(PublishDir)Jellyfin.Extensions.dll;
+        $(PublishDir)Jellyfin.MediaEncoding.Keyframes.dll;
+        $(PublishDir)MediaBrowser.Common.dll;
+        $(PublishDir)MediaBrowser.Controller.dll;
+        $(PublishDir)MediaBrowser.Model.dll;
+        $(PublishDir)Microsoft.Extensions.Caching.Abstractions.dll;
+        $(PublishDir)Microsoft.Extensions.Caching.Memory.dll;
+        $(PublishDir)Microsoft.Extensions.Configuration.Abstractions.dll;
+        $(PublishDir)Microsoft.Extensions.Configuration.Binder.dll;
+        $(PublishDir)Microsoft.Extensions.DependencyInjection.Abstractions.dll;
+        $(PublishDir)Microsoft.Extensions.DependencyInjection.dll;
+        $(PublishDir)Microsoft.Extensions.Logging.Abstractions.dll;
+        $(PublishDir)Microsoft.Extensions.Logging.dll;
+        $(PublishDir)Microsoft.Extensions.Options.dll;
+        $(PublishDir)Microsoft.Extensions.Primitives.dll
+      " />
+    </ItemGroup>
+    <Delete Files="@(_HostProvidedAssemblies)" />
+    <Message Text="Removed host-provided assemblies from publish output." Importance="normal" />
+  </Target>
+
 </Project>
