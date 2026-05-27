@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -15,7 +14,6 @@ public sealed class OidcFlow(string jellyfinBaseUrl, string providerName)
   private static readonly Regex StateInHtml =
       new("var data = '([^']+)'", RegexOptions.Compiled);
 
-  // TODO: Split each step into steps
   public async Task<OidcLoginResult> LoginAsync(
       string email,
       string password,
@@ -30,63 +28,108 @@ public sealed class OidcFlow(string jellyfinBaseUrl, string providerName)
     };
     using var http = new HttpClient(handler);
 
-    // Step 1: GET /sso/OID/start/{provider} — expect 302 to dex.
-    var startResponse = await http.GetAsync(
-        $"{jellyfinBaseUrl}/sso/OID/start/{providerName}", ct);
-    if (startResponse.StatusCode != HttpStatusCode.Found)
+    var step1 = await Step1StartAsync(http, ct);
+    if (step1.Denial is not null)
     {
-      return OidcLoginResult.Denied(startResponse.StatusCode, await ReadAsync(startResponse, ct));
+      return step1.Denial;
     }
 
-    var dexAuthUri = startResponse.Headers.Location
+    var step3Uri = await Step2DexAuthAsync(http, step1.DexAuthUri!, ct);
+    var loginUri = await Step3AuthLocalAsync(http, step3Uri, ct);
+    var redirectUri = await Step4SubmitCredentialsAsync(http, loginUri, email, password, ct);
+
+    var step5 = await Step5PluginRedirectAsync(http, redirectUri, ct);
+    if (step5.Denial is not null)
+    {
+      return step5.Denial;
+    }
+
+    return await Step6CompleteAuthAsync(http, step5.StateToken!, ct);
+  }
+
+  /// <summary>Step 1: GET /sso/OID/start/{provider} — expect 302 to dex.</summary>
+  private async Task<Step1Result> Step1StartAsync(HttpClient http, CancellationToken ct)
+  {
+    var response = await http.GetAsync(
+        $"{jellyfinBaseUrl}/sso/OID/start/{providerName}", ct);
+
+    if (response.StatusCode != HttpStatusCode.Found)
+    {
+      return new Step1Result(null, OidcLoginResult.Denied(response.StatusCode, await ReadAsync(response, ct)));
+    }
+
+    var dexAuthUri = response.Headers.Location
         ?? throw new InvalidOperationException("Step 1 missing Location header.");
 
-    // Step 2: GET dex /auth — expect 302 to /auth/local?...
-    var step2 = await http.GetAsync(dexAuthUri, ct);
-    var step3Uri = ResolveLocation(dexAuthUri, step2);
+    return new Step1Result(dexAuthUri, null);
+  }
 
-    // Step 3: GET /auth/local — expect 302 to /auth/local/login?back=&state=<dex-session>
-    var step3 = await http.GetAsync(step3Uri, ct);
-    var loginUri = ResolveLocation(step3Uri, step3);
+  /// <summary>Step 2: GET dex /auth — expect 302 to /auth/local?...</summary>
+  private static async Task<Uri> Step2DexAuthAsync(HttpClient http, Uri dexAuthUri, CancellationToken ct)
+  {
+    var response = await http.GetAsync(dexAuthUri, ct);
+    return ResolveLocation(dexAuthUri, response);
+  }
 
-    // Step 4: POST credentials.
-    var loginContent = new FormUrlEncodedContent(new[]
+  /// <summary>Step 3: GET /auth/local — expect 302 to /auth/local/login?back=&amp;state=&lt;dex-session&gt;.</summary>
+  private static async Task<Uri> Step3AuthLocalAsync(HttpClient http, Uri authLocalUri, CancellationToken ct)
+  {
+    var response = await http.GetAsync(authLocalUri, ct);
+    return ResolveLocation(authLocalUri, response);
+  }
+
+  /// <summary>Step 4: POST credentials. Expect 302/303 back to the plugin's /redirect URL.</summary>
+  private static async Task<Uri> Step4SubmitCredentialsAsync(
+      HttpClient http,
+      Uri loginUri,
+      string email,
+      string password,
+      CancellationToken ct)
+  {
+    var content = new FormUrlEncodedContent(new[]
     {
-            new KeyValuePair<string, string>("login", email),
-            new KeyValuePair<string, string>("password", password),
-        });
-    var step4 = await http.PostAsync(loginUri, loginContent, ct);
-    if (step4.StatusCode is not (HttpStatusCode.Found or HttpStatusCode.SeeOther))
+        new KeyValuePair<string, string>("login", email),
+        new KeyValuePair<string, string>("password", password),
+    });
+    var response = await http.PostAsync(loginUri, content, ct);
+
+    if (response.StatusCode is not (HttpStatusCode.Found or HttpStatusCode.SeeOther))
     {
       throw new InvalidOperationException(
-          $"Dex login POST returned {(int)step4.StatusCode}; expected 302/303. "
-          + $"Body: {await ReadAsync(step4, ct)}");
+          $"Dex login POST returned {(int)response.StatusCode}; expected 302/303. "
+          + $"Body: {await ReadAsync(response, ct)}");
     }
 
-    var redirectUri = ResolveLocation(loginUri, step4);
+    return ResolveLocation(loginUri, response);
+  }
 
-    // Step 5: GET plugin /redirect endpoint.
-    var step5 = await http.GetAsync(redirectUri, ct);
+  /// <summary>Step 5: GET plugin /redirect endpoint. Either returns the state token or a denial.</summary>
+  private static async Task<Step5Result> Step5PluginRedirectAsync(HttpClient http, Uri redirectUri, CancellationToken ct)
+  {
+    var response = await http.GetAsync(redirectUri, ct);
 
-    if (!step5.IsSuccessStatusCode)
+    if (!response.IsSuccessStatusCode)
     {
       // Denied path: e.g. the no-access user gets 401 with "Error. Check permissions."
-      return OidcLoginResult.Denied(step5.StatusCode, await ReadAsync(step5, ct));
+      return new Step5Result(null, OidcLoginResult.Denied(response.StatusCode, await ReadAsync(response, ct)));
     }
 
-    var html = await ReadAsync(step5, ct);
-    var stateMatch = StateInHtml.Match(html);
-    if (!stateMatch.Success)
+    var html = await ReadAsync(response, ct);
+    var match = StateInHtml.Match(html);
+    if (!match.Success)
     {
       throw new InvalidOperationException(
           "Plugin /redirect HTML did not contain `var data = '<state>'`. "
           + $"Body (first 400 chars): {html[..Math.Min(400, html.Length)]}");
     }
 
-    var stateToken = stateMatch.Groups[1].Value;
+    return new Step5Result(match.Groups[1].Value, null);
+  }
 
-    // Step 6: POST /sso/OID/Auth/{provider}.
-    var authPayload = new
+  /// <summary>Step 6: POST /sso/OID/Auth/{provider} with the state token to complete the session.</summary>
+  private async Task<OidcLoginResult> Step6CompleteAuthAsync(HttpClient http, string stateToken, CancellationToken ct)
+  {
+    var payload = new
     {
       deviceId = "oidc-flow-test",
       appName = "oidc-flow-test",
@@ -94,15 +137,15 @@ public sealed class OidcFlow(string jellyfinBaseUrl, string providerName)
       deviceName = "oidc-flow-test",
       data = stateToken,
     };
-    var authBody = new StringContent(
-        JsonSerializer.Serialize(authPayload),
+    var body = new StringContent(
+        JsonSerializer.Serialize(payload),
         System.Text.Encoding.UTF8,
         "application/json");
-    var step6 = await http.PostAsync(
-        $"{jellyfinBaseUrl}/sso/OID/Auth/{providerName}", authBody, ct);
-    step6.EnsureSuccessStatusCode();
+    var response = await http.PostAsync(
+        $"{jellyfinBaseUrl}/sso/OID/Auth/{providerName}", body, ct);
+    response.EnsureSuccessStatusCode();
 
-    var resultBody = await ReadAsync(step6, ct);
+    var resultBody = await ReadAsync(response, ct);
     var result = JsonSerializer.Deserialize<JsonElement>(resultBody);
 
     var accessToken = result.GetProperty("AccessToken").GetString()
@@ -123,6 +166,10 @@ public sealed class OidcFlow(string jellyfinBaseUrl, string providerName)
 
   private static Task<string> ReadAsync(HttpResponseMessage response, CancellationToken ct) =>
       response.Content.ReadAsStringAsync(ct);
+
+  private readonly record struct Step1Result(Uri? DexAuthUri, OidcLoginResult? Denial);
+
+  private readonly record struct Step5Result(string? StateToken, OidcLoginResult? Denial);
 }
 
 public sealed record OidcLoginResult(
