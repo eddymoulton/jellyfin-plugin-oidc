@@ -28,7 +28,7 @@ public sealed class OidcFlow(string jellyfinBaseUrl, string providerName)
     };
     using var http = new HttpClient(handler);
 
-    var step1 = await Step1StartAsync(http, ct);
+    var step1 = await Step1StartAsync(http, isLinking: false, ct);
     if (step1.Denial is not null)
     {
       return step1.Denial;
@@ -47,11 +47,59 @@ public sealed class OidcFlow(string jellyfinBaseUrl, string providerName)
     return await Step6CompleteAuthAsync(http, step5.StateToken!, ct);
   }
 
-  /// <summary>Step 1: GET /sso/OID/start/{provider} — expect 302 to dex.</summary>
-  private async Task<Step1Result> Step1StartAsync(HttpClient http, CancellationToken ct)
+  public async Task<OidcLoginResult> LinkAsync(
+      Guid jellyfinUserId,
+      string existingToken,
+      string email,
+      string password,
+      CancellationToken ct = default)
   {
-    var response = await http.GetAsync(
-        $"{jellyfinBaseUrl}/sso/OID/start/{providerName}", ct);
+    var cookies = new CookieContainer();
+    using var handler = new HttpClientHandler
+    {
+      CookieContainer = cookies,
+      AllowAutoRedirect = false,
+      UseCookies = true,
+    };
+    using var http = new HttpClient(handler);
+
+    // Warm-up: a fresh plugin state requires a non-linking /start/ hit first to flip
+    // `config.NewPath = true`. Without this, `OidChallenge(isLinking: true)` builds a
+    // /sso/OID/r/{provider} redirect URI that dex isn't configured to accept. See
+    // SSO-Auth/Api/SSOController.cs:378-382.
+    using (var warmup = new HttpRequestMessage(
+        HttpMethod.Get, $"{jellyfinBaseUrl}/sso/OID/start/{providerName}"))
+    {
+      using var _ = await http.SendAsync(warmup, ct);
+    }
+
+    var step1 = await Step1StartAsync(http, isLinking: true, ct);
+    if (step1.Denial is not null)
+    {
+      return step1.Denial;
+    }
+
+    var step3Uri = await Step2DexAuthAsync(http, step1.DexAuthUri!, ct);
+    var loginUri = await Step3AuthLocalAsync(http, step3Uri, ct);
+    var redirectUri = await Step4SubmitCredentialsAsync(http, loginUri, email, password, ct);
+
+    var step5 = await Step5PluginRedirectAsync(http, redirectUri, ct);
+    if (step5.Denial is not null)
+    {
+      return step5.Denial;
+    }
+
+    await SubmitLinkAsync(http, jellyfinUserId, existingToken, step5.StateToken!, ct);
+    return await Step6CompleteAuthAsync(http, step5.StateToken!, ct);
+  }
+
+  /// <summary>Step 1: GET /sso/OID/start/{provider} — expect 302 to dex.</summary>
+  private async Task<Step1Result> Step1StartAsync(HttpClient http, bool isLinking, CancellationToken ct)
+  {
+    var startUrl = isLinking
+        ? $"{jellyfinBaseUrl}/sso/OID/start/{providerName}?isLinking=true"
+        : $"{jellyfinBaseUrl}/sso/OID/start/{providerName}";
+    var response = await http.GetAsync(startUrl, ct);
 
     if (response.StatusCode != HttpStatusCode.Found)
     {
@@ -124,6 +172,43 @@ public sealed class OidcFlow(string jellyfinBaseUrl, string providerName)
     }
 
     return new Step5Result(match.Groups[1].Value, null);
+  }
+
+  /// <summary>Linking-mode-only step: POST /sso/OID/Link/{provider}/{jellyfinUserId} with the linker's existing token.</summary>
+  private async Task SubmitLinkAsync(
+      HttpClient http,
+      Guid jellyfinUserId,
+      string existingToken,
+      string stateToken,
+      CancellationToken ct)
+  {
+    var payload = new
+    {
+      deviceId = "oidc-flow-test",
+      appName = "oidc-flow-test",
+      appVersion = "1.0.0",
+      deviceName = "oidc-flow-test",
+      data = stateToken,
+    };
+    var body = new StringContent(
+        JsonSerializer.Serialize(payload),
+        System.Text.Encoding.UTF8,
+        "application/json");
+
+    using var request = new HttpRequestMessage(
+        HttpMethod.Post,
+        $"{jellyfinBaseUrl}/sso/OID/Link/{providerName}/{jellyfinUserId}")
+    {
+      Content = body,
+    };
+    request.Headers.TryAddWithoutValidation("Authorization", $"MediaBrowser Token=\"{existingToken}\"");
+
+    using var response = await http.SendAsync(request, ct);
+    if (!response.IsSuccessStatusCode)
+    {
+      throw new InvalidOperationException(
+          $"Link POST returned {(int)response.StatusCode}. Body: {await ReadAsync(response, ct)}");
+    }
   }
 
   /// <summary>Step 6: POST /sso/OID/Auth/{provider} with the state token to complete the session.</summary>
