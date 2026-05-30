@@ -33,13 +33,14 @@ Then open <http://localhost:8096/sso/OID/start/dex> in your browser.
 Dex's login form uses **email**, not username. The `username` field below
 is what surfaces through OIDC as `preferred_username`.
 
-| Email (login)          | Password   | Groups            | Expected Jellyfin role |
-|------------------------|------------|-------------------|------------------------|
-| `admin@test.local`     | `password` | `jellyfin-admin`  | Admin                  |
-| `user@test.local`      | `password` | `jellyfin-users`  | Regular user           |
-| `noaccess@test.local`  | `password` | _none_            | Login denied           |
+| Email (login)         | Password   | Groups           | Expected Jellyfin role |
+| --------------------- | ---------- | ---------------- | ---------------------- |
+| `admin@test.local`    | `password` | `jellyfin-admin` | Admin                  |
+| `user@test.local`     | `password` | `jellyfin-users` | Regular user           |
+| `noaccess@test.local` | `password` | _none_           | Login denied           |
 
 Jellyfin admin (out-of-band, for the admin dashboard):
+
 - Username: `admin`
 - Password: `admin`
 
@@ -47,15 +48,15 @@ Jellyfin admin (out-of-band, for the admin dashboard):
 
 The bash scripts below are thin wrappers around a C# CLI; see [Direct CLI usage](#direct-cli-usage) for details on calling the orchestrator directly.
 
-| Script                   | Purpose                                                |
-|--------------------------|--------------------------------------------------------|
-| `up.sh`                  | Full bring-up. Idempotent.                             |
-| `down.sh`                | Stop containers. Keeps state.                          |
-| `down.sh --volumes`      | Stop containers and wipe `.data/` + `.publish/`.       |
-| `reload.sh`              | Republish plugin + restart Jellyfin only.              |
-| `provision.sh`           | Re-register the SSO provider (called by `up.sh`).      |
-| `snapshot-create.sh`     | Rebuild the baseline from scratch via manual wizard.   |
-| `snapshot-refresh.sh`    | Migrate an existing snapshot to a new Jellyfin version. |
+| Script                | Purpose                                                 |
+| --------------------- | ------------------------------------------------------- |
+| `up.sh`               | Full bring-up. Idempotent.                              |
+| `down.sh`             | Stop containers. Keeps state.                           |
+| `down.sh --volumes`   | Stop containers and wipe `.data/` + `.publish/`.        |
+| `reload.sh`           | Republish plugin + restart Jellyfin only.               |
+| `provision.sh`        | Re-register the SSO provider (called by `up.sh`).       |
+| `snapshot-create.sh`  | Rebuild the baseline from scratch via manual wizard.    |
+| `snapshot-refresh.sh` | Migrate an existing snapshot to a new Jellyfin version. |
 
 ## Direct CLI usage
 
@@ -153,9 +154,11 @@ cause is `dotnet publish` silently failing. Verify
 **OIDC login fails with "invalid issuer".**
 The issuer URL embedded in Dex's discovery doc must match the URL the
 plugin sees. Run from inside Jellyfin:
+
 ```
 docker exec jellyfin-sso-test curl -s http://dex.localtest.me:5556/dex/.well-known/openid-configuration | jq .issuer
 ```
+
 Should print `"http://dex.localtest.me:5556/dex"`. If it prints something
 else or fails, see the Networking section above.
 
