@@ -137,7 +137,7 @@ public class SSOController : ControllerBase
                     System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
                     System.Diagnostics.FileVersionInfo fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
                     string version = fvi.FileVersion;
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd($"Jellyfin-Plugin-SSO-Auth +{version} (https://github.com/9p4/jellyfin-plugin-sso)");
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd($"Jellyfin-Plugin-OIDC-Auth +{version} (https://github.com/eddymoulton/jellyfin-plugin-oidc)");
                     return client;
                 }
             };
@@ -400,7 +400,7 @@ public class SSOController : ControllerBase
                     System.Diagnostics.FileVersionInfo fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
                     string version = fvi.FileVersion;
 
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd($"Jellyfin-Plugin-SSO-Auth +{version} (https://github.com/9p4/jellyfin-plugin-sso)");
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd($"Jellyfin-Plugin-OIDC-Auth +{version} (https://github.com/eddymoulton/jellyfin-plugin-oidc)");
                     return client;
                 }
             };
@@ -1204,7 +1204,7 @@ public class SSOController : ControllerBase
                 System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
                 System.Diagnostics.FileVersionInfo fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
                 string version = fvi.FileVersion;
-                client.DefaultRequestHeaders.UserAgent.ParseAdd($"Jellyfin-Plugin-SSO-Auth +{version} (https://github.com/9p4/jellyfin-plugin-sso)");
+                client.DefaultRequestHeaders.UserAgent.ParseAdd($"Jellyfin-Plugin-OIDC-Auth +{version} (https://github.com/eddymoulton/jellyfin-plugin-oidc)");
 
                 var avatarResponse = await client.GetAsync(avatarUrl);
 

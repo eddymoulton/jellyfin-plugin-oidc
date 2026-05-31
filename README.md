@@ -1,23 +1,23 @@
-<h1 align="center">Jellyfin SSO Plugin</h1>
+<h1 align="center">Jellyfin OIDC Plugin</h1>
 
 <p align="center">
 
-<img alt="Logo" src="https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/main/img/logo.png"/>
+<img alt="Logo" src="https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/main/img/logo.png"/>
 <br/>
 <br/>
-<a href="https://github.com/9p4/jellyfin-plugin-sso">
-<img alt="GPL 3.0 License" src="https://img.shields.io/github/license/9p4/jellyfin-plugin-sso.svg"/>
+<a href="https://github.com/eddymoulton/jellyfin-plugin-oidc">
+<img alt="GPL 3.0 License" src="https://img.shields.io/github/license/eddymoulton/jellyfin-plugin-oidc.svg"/>
 </a>
-<a href="https://github.com/9p4/jellyfin-plugin-sso/actions/workflows/dotnet.yml">
-<img alt="GitHub Actions Build Status" src="https://github.com/9p4/jellyfin-plugin-sso/actions/workflows/dotnet.yml/badge.svg"/>
+<a href="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/build.yml">
+<img alt="GitHub Actions Build Status" src="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/build.yml/badge.svg"/>
 </a>
-<a href="https://github.com/9p4/jellyfin-plugin-sso/releases">
-<img alt="Current Release" src="https://img.shields.io/github/release/9p4/jellyfin-plugin-sso.svg"/>
+<a href="https://github.com/eddymoulton/jellyfin-plugin-oidc/releases">
+<img alt="Current Release" src="https://img.shields.io/github/release/eddymoulton/jellyfin-plugin-oidc.svg"/>
 </a>
-<a href="https://github.com/9p4/jellyfin-plugin-sso/releases.atom">
+<a href="https://github.com/eddymoulton/jellyfin-plugin-oidc/releases.atom">
 <img alt="Release RSS Feed" src="https://img.shields.io/badge/rss-releases-ffa500?logo=rss" />
 </a>
-<a href="https://github.com/9p4/jellyfin-plugin-sso/commits/main.atom">
+<a href="https://github.com/eddymoulton/jellyfin-plugin-oidc/commits/main.atom">
 <img alt="Main Commits RSS Feed" src="https://img.shields.io/badge/rss-commits-ffa500?logo=rss" />
 </a>
 </p>
@@ -63,24 +63,17 @@ This is my first time writing C# so please take all of the code written here wit
 
 ## Installing
 
-Add the package repo [https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/manifest-release/manifest.json](https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/manifest-release/manifest.json) to your Jellyfin plugin repositories.
+Add the package repo [https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/manifest-release/manifest.json](https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/manifest-release/manifest.json) to your Jellyfin plugin repositories.
 
 Then, install the plugin from the plugin catalog!
 
 See [Contributing](#contributing) for instructions on how to build from source.
 
-### (Fallback) Legacy package repo (Versions <= 3.3.0)
-
-We have transitioned to a release system that automates distribution, packaging & hosting.
-This system is new, and if something goes wrong, you can try using the old package repository as a fallback.
-
-Instead add the **old** package repository: [https://repo.ersei.net/jellyfin/manifest.json](https://repo.ersei.net/jellyfin/manifest.json) to your jellyfin plugin repositories.
-
 ### Installing cutting edge/nightly builds
 
 If you're impatient/brave/feel like helping us test things out, you can install the nightly build of the plugin, which is automatically built against the main branch.
 
-The nightly build can be installed from the [main plugin repo](https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/manifest-release/manifest.json), and will always have a version number of `0.0.0.9000`.
+The nightly build can be installed from the [main plugin repo](https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/manifest-release/manifest.json), and will always have a version number of `0.0.0.9000`.
 
 The nightly build may have new features unavailable in other builds, but **be warned**, things may change frequently in nightly builds, and things may break, and you could lose data.
 
@@ -304,7 +297,7 @@ Anything tagged/released as a formal Github release will also be built and publi
 
 If you wish to use releases from your own fork, refer to
 [Installing](#installing), however, you will need to change the url to the
-manifest file, `https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/manifest-release/manifest.json`
+manifest file, `https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/manifest-release/manifest.json`
 so that it refers to your fork.
 
 ## Credits and Thanks
