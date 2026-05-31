@@ -6,7 +6,6 @@ This plugin has been tested to work against various providers, though not all pr
 
 ## TOC / Tested Providers:
 
-
 ❗These providers were tested with the upstream 9p4/jellyfin-plugin-sso plugin, but I've only used Authentik
 
 This section is broken into providers that support Role-Based Access Control (RBAC), and those that do not
