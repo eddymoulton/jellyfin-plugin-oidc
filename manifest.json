@@ -1,1 +1,21 @@
-[]
+[
+    {
+        "guid": "ef25b893-ba73-4444-928c-01cd0e695ad4",
+        "name": "OIDC Authentication",
+        "description": "This plugin allows users to sign in through an OIDC provider (such as Google, Facebook, or your own provider). This enables one-click signin.\nReview documentation at https://github.com/eddymoulton/jellyfin-plugin-oidc\n",
+        "overview": "Authenticate users against an OIDC provider.",
+        "owner": "eddymoulton",
+        "category": "Authentication",
+        "versions": [
+            {
+                "version": "0.2606.1.0",
+                "changelog": "0.0.0.0 - Forked\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/eddymoulton/jellyfin-plugin-oidc/releases/download/unstable/oidc-authentication_0.2606.1.0.zip",
+                "checksum": "36a596bcc7270b5708804036d3b4cb9d",
+                "timestamp": "2026-06-01T10:07:31Z"
+            }
+        ],
+        "imageUrl": "https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/main/img/logo.png"
+    }
+]
