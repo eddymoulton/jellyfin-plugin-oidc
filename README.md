@@ -11,8 +11,8 @@
 <a href="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/dotnet-test.yml">
 <img alt="GitHub Actions Build Status" src="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/dotnet-test.yml/badge.svg"/>
 </a>
-<a href="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/publish-nightly.yml">
-<img alt="GitHub Actions Build Status" src="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/publish-nightly.yml/badge.svg"/>
+<a href="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/publish-unstable.yml">
+<img alt="Unstable Build Status" src="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/publish-unstable.yml/badge.svg"/>
 </a>
 <a href="https://github.com/eddymoulton/jellyfin-plugin-oidc/releases">
 <img alt="Current Release" src="https://img.shields.io/github/release/eddymoulton/jellyfin-plugin-oidc.svg"/>
@@ -65,19 +65,33 @@ This is my first time writing C# so please take all of the code written here wit
 
 ## Installing
 
-Add the package repo [https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/manifest-release/manifest.json](https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/manifest-release/manifest.json) to your Jellyfin plugin repositories.
+### Stable (recommended)
 
-Then, install the plugin from the plugin catalog!
+Add the stable package repository to your Jellyfin plugin repositories (**Dashboard → Plugins → Repositories → +**):
+
+```
+https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/manifest-stable/manifest.json
+```
+
+Then install **OIDC Authentication** from the plugin catalog!
 
 See [Contributing](#contributing) for instructions on how to build from source.
 
-### Installing cutting edge/nightly builds
+### Unstable builds
 
-If you're impatient/brave/feel like helping us test things out, you can install the nightly build of the plugin, which is automatically built against the main branch.
+If you're impatient/brave/feel like helping us test things out, you can opt into unstable builds, which are built automatically from every change on the `main` branch and versioned `N.YYMM.run.0`.
 
-The nightly build can be installed from the [main plugin repo](https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/manifest-release/manifest.json), and will always have a version number of `0.0.0.9000`.
+Add the unstable repository instead of (or alongside) the stable one:
 
-The nightly build may have new features unavailable in other builds, but **be warned**, things may change frequently in nightly builds, and things may break, and you could lose data.
+```
+https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/manifest-unstable/manifest.json
+```
+
+Unstable builds may have new features unavailable in stable, but **be warned**: things change frequently, may break, and you could lose data. They are not intended for production use.
+
+### Branch builds
+
+Builds for individual feature branches are uploaded as artifacts on each branch's GitHub Actions run (named `oidc-<branch>-<sha>.zip`) and must be installed manually. They are not published to any repository.
 
 ## Roadmap
 
@@ -235,14 +249,11 @@ Build the zipped plugin with `jprm --verbosity=debug plugin build .`.
 
 ### CI Releases
 
-Anything merged to the main branch will be built and published by our CI system.
+Every change merged to the `main` branch is built and published to the **unstable** manifest by CI.
 
-Anything tagged/released as a formal Github release will also be built and published by our CI system.
+Formal GitHub releases are built and published to the **stable** manifest by CI.
 
-If you wish to use releases from your own fork, refer to
-[Installing](#installing), however, you will need to change the url to the
-manifest file, `https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/manifest-release/manifest.json`
-so that it refers to your fork.
+If you wish to use builds from your own fork, refer to [Installing](#installing), but change the manifest URLs (`.../manifest-stable/manifest.json` and `.../manifest-unstable/manifest.json`) so they refer to your fork.
 
 ## Credits and Thanks
 
