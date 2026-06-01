@@ -1,0 +1,13 @@
+{
+  "name": "jellyfin-plugin-oidc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Formatting tooling for the Jellyfin OIDC plugin web assets and docs",
+  "scripts": {
+    "lint": "prettier --check .",
+    "lint:fix": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "3.4.2"
+  }
+}
