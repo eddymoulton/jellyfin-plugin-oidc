@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using DotNet.Testcontainers.Builders;
@@ -31,7 +32,7 @@ public sealed class ContainerStack(EnvConfig config)
         await dex.StartAsync(ct);
 
         Console.Out.WriteLine($"[+] Starting {config.JellyfinContainerName} ...");
-        var jellyfin = new ContainerBuilder($"jellyfin/jellyfin:{config.JellyfinVersion}")
+        var jellyfinBuilder = new ContainerBuilder($"jellyfin/jellyfin:{config.JellyfinVersion}")
             .WithName(config.JellyfinContainerName)
             .WithPortBinding(config.JellyfinHostPort, 8096)
             .WithBindMount(config.JellyfinConfigDir, "/config")
@@ -40,62 +41,25 @@ public sealed class ContainerStack(EnvConfig config)
             .WithBindMount(config.PublishDir, "/config/plugins/SSO-Auth")
             .WithExtraHost("dex.localtest.me", "host-gateway")
             .WithCleanUp(false)
-            .WithAutoRemove(false)
-            .Build();
+            .WithAutoRemove(false);
+
+        // On Linux (e.g. CI runners), the container runs as root by default, so files it
+        // writes into the bind-mounted /config and /cache dirs end up root-owned and the
+        // non-root host process can't delete them at teardown. Pin the container to the
+        // host's uid/gid so bind-mounted files stay host-owned and Directory.Delete works.
+        // Docker Desktop (macOS/Windows) already remaps ownership to the host user, so this
+        // is only needed — and only meaningful — on Linux.
+        if (OperatingSystem.IsLinux())
+        {
+            var userSpec = GetHostUserSpec();
+            jellyfinBuilder = jellyfinBuilder.WithCreateParameterModifier(parameters => parameters.User = userSpec);
+        }
+
+        var jellyfin = jellyfinBuilder.Build();
         await jellyfin.StartAsync(ct);
     }
 
     public Task DownAsync(CancellationToken ct = default) => StopAndRemoveAllAsync(ct);
-
-    /// <summary>
-    /// Wipes the Jellyfin config directory by running a short-lived container (using the already-
-    /// pulled Jellyfin image) with the config dir bind-mounted and executing <c>rm -rf</c> inside
-    /// it as root. This is necessary because the Jellyfin container runs as root, so the bind-
-    /// mounted config files are root-owned and cannot be deleted by the current (non-root) host
-    /// process.
-    /// </summary>
-    public async Task WipeConfigDirAsync(CancellationToken ct = default)
-    {
-        Console.Out.WriteLine($"[+] Wiping config dir via privileged container ...");
-        using var client = CreateDockerClient();
-
-        var jellyfinImage = $"jellyfin/jellyfin:{config.JellyfinVersion}";
-        var created = await client.Containers.CreateContainerAsync(
-            new CreateContainerParameters
-            {
-                Image = jellyfinImage,
-                // Override the Jellyfin entrypoint so this runs as a plain shell one-shot.
-                Entrypoint = new[] { "sh" },
-                Cmd = new[] { "-c", "rm -rf /target/*" },
-                HostConfig = new HostConfig
-                {
-                    Binds = new[] { $"{config.JellyfinConfigDir}:/target" },
-                    AutoRemove = false,
-                },
-            },
-            ct);
-
-        await client.Containers.StartContainerAsync(created.ID, new ContainerStartParameters(), ct);
-
-        // Wait for the container to finish (it exits immediately after rm -rf).
-        var waitResult = await client.Containers.WaitContainerAsync(created.ID, ct);
-        if (waitResult.StatusCode != 0)
-        {
-            throw new OrchestrationException(
-                $"Config dir wipe container exited with code {waitResult.StatusCode}.");
-        }
-
-        // Clean up the stopped container.
-        try
-        {
-            await client.Containers.RemoveContainerAsync(
-                created.ID, new ContainerRemoveParameters(), ct);
-        }
-        catch (DockerContainerNotFoundException)
-        {
-            // Already gone.
-        }
-    }
 
     public async Task RestartJellyfinAsync(CancellationToken ct = default)
     {
@@ -110,40 +74,6 @@ public sealed class ContainerStack(EnvConfig config)
         catch (DockerContainerNotFoundException)
         {
             throw new OrchestrationException($"Container '{config.JellyfinContainerName}' does not exist; run 'up' first.");
-        }
-    }
-
-    public async Task StopJellyfinAsync(CancellationToken ct = default)
-    {
-        using var client = CreateDockerClient();
-        try
-        {
-            await client.Containers.StopContainerAsync(
-                config.JellyfinContainerName,
-                new ContainerStopParameters { WaitBeforeKillSeconds = 10 },
-                ct);
-        }
-        catch (DockerContainerNotFoundException)
-        {
-            throw new OrchestrationException(
-                $"Container '{config.JellyfinContainerName}' does not exist; run 'up' first.");
-        }
-    }
-
-    public async Task StartJellyfinAsync(CancellationToken ct = default)
-    {
-        using var client = CreateDockerClient();
-        try
-        {
-            await client.Containers.StartContainerAsync(
-                config.JellyfinContainerName,
-                new ContainerStartParameters(),
-                ct);
-        }
-        catch (DockerContainerNotFoundException)
-        {
-            throw new OrchestrationException(
-                $"Container '{config.JellyfinContainerName}' does not exist; run 'up' first.");
         }
     }
 
@@ -223,4 +153,35 @@ public sealed class ContainerStack(EnvConfig config)
 
     private static IDockerClient CreateDockerClient() =>
         new DockerClientBuilder().Build();
+
+    /// <summary>
+    /// Returns the host's <c>uid:gid</c> by shelling out to <c>id</c>. Linux-only; used to run the
+    /// Jellyfin container as the host user so bind-mounted files stay host-owned (and deletable).
+    /// </summary>
+    private static string GetHostUserSpec()
+    {
+        var uid = RunId("-u");
+        var gid = RunId("-g");
+        return $"{uid}:{gid}";
+    }
+
+    private static string RunId(string arg)
+    {
+        var psi = new ProcessStartInfo("id", arg)
+        {
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+        };
+
+        using var process = Process.Start(psi)
+            ?? throw new OrchestrationException("Failed to start 'id' to resolve the host user.");
+        var output = process.StandardOutput.ReadToEnd().Trim();
+        process.WaitForExit();
+        if (process.ExitCode != 0 || output.Length == 0)
+        {
+            throw new OrchestrationException($"'id {arg}' failed (exit {process.ExitCode}).");
+        }
+
+        return output;
+    }
 }

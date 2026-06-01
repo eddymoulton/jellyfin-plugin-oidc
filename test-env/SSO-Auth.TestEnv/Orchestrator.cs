@@ -54,22 +54,15 @@ public sealed class Orchestrator(EnvConfig config)
     }
 
     /// <summary>
-    /// Per-test reset for the xUnit fixture in Plan 2. Stops Jellyfin so the bind-mounted config
-    /// dir can be safely wiped + extracted fresh, then starts Jellyfin and re-provisions the SSO
-    /// provider. Faster than a full down/up cycle (~5-10s vs ~15-20s) because containers, network,
-    /// and image cache stay in place.
+    /// Per-test reset for the xUnit fixture: a full teardown followed by a fresh bring-up. Wiping
+    /// volumes and recreating the containers guarantees clean Jellyfin state from the snapshot with
+    /// no leftover files. We measured the earlier stop/wipe/restart "fast reset" at ~35s vs ~38s for
+    /// this down/up cycle — a ~3s saving that didn't justify its complexity, so it was removed.
     /// </summary>
     public async Task ResetAsync(CancellationToken ct = default)
     {
-        Console.Out.WriteLine("[+] Resetting test environment ...");
-        await _stack.StopJellyfinAsync(ct);
-        await _stack.WipeConfigDirAsync(ct);
-        await _snapshots.ForceRestoreAsync(ct);
-        await _stack.StartJellyfinAsync(ct);
-        await _stack.WaitForJellyfinAsync(ct);
-        Console.Out.WriteLine("[+] Re-provisioning SSO provider ...");
-        await _provisioner.ProvisionAsync(ct);
-        Console.Out.WriteLine("[+] Reset complete.");
+        await DownAsync(wipeVolumes: true, ct);
+        await UpAsync(ct);
     }
 
     public Task ProvisionAsync(CancellationToken ct = default) => _provisioner.ProvisionAsync(ct);

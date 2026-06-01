@@ -32,27 +32,6 @@ public sealed class SnapshotStore(EnvConfig config)
         await ExtractAsync(snapshotPath, configDir, ct);
     }
 
-    /// <summary>
-    /// Force-restore (no idempotency check). Used by per-test reset in Plan 2.
-    /// The caller is responsible for wiping the config dir first (e.g. via
-    /// <see cref="ContainerStack.WipeConfigDirAsync"/>) before calling this, because
-    /// the Jellyfin container runs as root and the config files are root-owned — the
-    /// current process cannot delete them with <see cref="Directory.Delete"/>.
-    /// </summary>
-    public async Task ForceRestoreAsync(CancellationToken ct = default)
-    {
-        var snapshotPath = config.SnapshotPath;
-        if (!File.Exists(snapshotPath))
-        {
-            throw new OrchestrationException($"No snapshot at {snapshotPath}.");
-        }
-
-        var configDir = config.JellyfinConfigDir;
-        Directory.CreateDirectory(configDir);
-        Console.Out.WriteLine($"[+] Force-restoring snapshot {Path.GetFileName(snapshotPath)} ...");
-        await ExtractAsync(snapshotPath, configDir, ct);
-    }
-
     private static async Task ExtractAsync(string snapshotPath, string targetDir, CancellationToken ct)
     {
         await using var fileStream = File.OpenRead(snapshotPath);

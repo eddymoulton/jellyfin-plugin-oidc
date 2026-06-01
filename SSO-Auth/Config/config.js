@@ -1,5 +1,5 @@
 const ssoConfigurationPage = {
-  pluginUniqueId: "505ce9d1-d916-42fa-86ca-673ef241d7df",
+  pluginUniqueId: "ef25b893-ba73-4444-928c-01cd0e695ad4",
   loadConfiguration: (page) => {
     ApiClient.getPluginConfiguration(ssoConfigurationPage.pluginUniqueId).then(
       (config) => {
@@ -359,7 +359,7 @@ const ssoConfigurationPage = {
     var style = document.createElement("link");
     style.rel = "stylesheet";
     style.href =
-      ApiClient.getUrl("web/configurationpage") + "?name=SSO-Auth.css";
+      ApiClient.getUrl("web/configurationpage") + "?name=OIDC-Auth.css";
     view.appendChild(style);
   },
 };
