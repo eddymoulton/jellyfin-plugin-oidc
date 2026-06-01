@@ -1,0 +1,13 @@
+name: "Autolabel PRs"
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  call:
+    uses: jellyfin/jellyfin-meta-plugins/.github/workflows/autolabel.yaml@master
+    with:
+      repository-name: eddymoulton/jellyfin-plugin-oidc
+    secrets:
+      token: ${{ secrets.RELEASE_PAT }}
