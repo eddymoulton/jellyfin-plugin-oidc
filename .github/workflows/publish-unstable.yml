@@ -1,0 +1,84 @@
+name: "Publish Unstable"
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**/*.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-unstable
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Compute unstable version
+        id: ver
+        run: |
+          base=$(yq '.version' build.yaml | tr -d '"')
+          echo "version=${base}.$(date -u +%y%m).${GITHUB_RUN_NUMBER}.0" >> "$GITHUB_OUTPUT"
+
+      - name: Build plugin
+        id: jprm
+        uses: oddstr13/jellyfin-plugin-repository-manager@9497a0a499416cc572ed2e07a391d9f943a37b4d # v1.1.1
+        with:
+          dotnet-target: net9.0
+          version: ${{ steps.ver.outputs.version }}
+
+      - name: Generate checksums and upload to rolling unstable pre-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACT: ${{ steps.jprm.outputs.artifact }}
+        run: |
+          dir="$(dirname "$ARTIFACT")"
+          name="$(basename "$ARTIFACT")"
+          cd "$dir"
+          md5sum "$name" > "$name.md5"
+          sha256sum "$name" > "$name.sha256"
+          gh release view unstable >/dev/null 2>&1 || \
+            gh release create unstable --prerelease --target main \
+              --title "Unstable builds" \
+              --notes "Rolling unstable builds from main. Not for production use."
+          gh release upload unstable "$name" "$name.md5" "$name.sha256" --clobber
+
+      - name: Checkout unstable manifest
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        with:
+          ref: manifest-unstable
+          path: manifest-unstable
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install jprm
+        run: pipx install jprm
+
+      - name: Update unstable manifest
+        env:
+          ARTIFACT: ${{ steps.jprm.outputs.artifact }}
+        run: |
+          base="https://github.com/${{ github.repository }}/releases/download/unstable"
+          jprm --verbosity=debug repo add \
+            --url="$base" \
+            --plugin-url="$base/$(basename "$ARTIFACT")" \
+            manifest-unstable/manifest.json \
+            "$ARTIFACT"
+
+      - name: Commit manifest
+        run: |
+          cd manifest-unstable
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: publish ${{ steps.ver.outputs.version }} to unstable manifest"
+          git push
