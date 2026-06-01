@@ -29,6 +29,9 @@ public sealed class ProviderProvisioner(EnvConfig config)
         Console.Out.WriteLine("[+] Minting an API key ...");
         var apiKey = await EnsureApiKeyAsync(http, token, ct);
 
+        Console.Out.WriteLine("[+] Waiting for SSO plugin routes ...");
+        await WaitForPluginRoutesAsync(http, apiKey, ct);
+
         Console.Out.WriteLine($"[+] Registering provider '{config.ProviderName}' from {Path.GetFileName(config.DexSeedFile)} ...");
         var seedJson = await File.ReadAllTextAsync(config.DexSeedFile, ct);
         var addResponse = await http.PostAsync(
@@ -52,6 +55,94 @@ public sealed class ProviderProvisioner(EnvConfig config)
         }
 
         Console.Out.WriteLine($"[+] Provider '{config.ProviderName}' registered.");
+    }
+
+    /// <summary>
+    /// Waits for the SSO plugin's controller routes to be mapped. On a cold start, Jellyfin's core API
+    /// (and even /Users/AuthenticateByName) can respond before the plugin finishes loading, so the
+    /// /sso/* routes briefly 404. Polls /sso/OID/Get (which requires the just-minted API key) until it
+    /// returns 200, treating 404 and 5xx as transient and any other status as a real failure.
+    /// </summary>
+    private async Task WaitForPluginRoutesAsync(HttpClient http, string apiKey, CancellationToken ct)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(config.PluginReadyTimeoutSeconds);
+        var url = $"/sso/OID/Get?api_key={Uri.EscapeDataString(apiKey)}";
+        while (DateTime.UtcNow < deadline)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                using var response = await http.GetAsync(url, ct);
+                if (response.IsSuccessStatusCode)
+                {
+                    return;
+                }
+
+                var code = (int)response.StatusCode;
+                if (code != 404 && code is < 500 or >= 600)
+                {
+                    // Not a cold-start race (e.g. 401/403); surface it immediately.
+                    response.EnsureSuccessStatusCode();
+                }
+
+                Console.Out.WriteLine($"[+] SSO routes not ready ({code}); retrying ...");
+            }
+            catch (HttpRequestException)
+            {
+                // Not up yet.
+            }
+            catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+            {
+                // GET timeout; retry.
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(2), ct);
+        }
+
+        throw new OrchestrationException(
+            $"SSO plugin routes did not become available within {config.PluginReadyTimeoutSeconds} seconds."
+            + ReadJellyfinPluginLogTail());
+    }
+
+    /// <summary>
+    /// Best-effort: reads the most recent Jellyfin log from the bind-mounted config dir and returns the
+    /// plugin-relevant lines, so a route-wait timeout (which otherwise only says "404 for N seconds")
+    /// carries the actual plugin-load evidence — whether the SSO assembly loaded, whether the plugin was
+    /// registered, and any ABI/exception. Never throws; diagnostics must not mask the original failure.
+    /// </summary>
+    private string ReadJellyfinPluginLogTail()
+    {
+        try
+        {
+            var logDir = Path.Combine(config.JellyfinConfigDir, "log");
+            if (!Directory.Exists(logDir))
+            {
+                return $"\n(No Jellyfin log dir at {logDir}.)";
+            }
+
+            var newest = new DirectoryInfo(logDir)
+                .GetFiles("log_*.log")
+                .OrderByDescending(f => f.LastWriteTimeUtc)
+                .FirstOrDefault();
+            if (newest is null)
+            {
+                return $"\n(No Jellyfin log files in {logDir}.)";
+            }
+
+            string[] keywords = { "plugin", "sso", "oidc", "abi", "controller", "error", "exception", "fail" };
+            var relevant = File.ReadLines(newest.FullName)
+                .Where(line => keywords.Any(k => line.Contains(k, StringComparison.OrdinalIgnoreCase)))
+                .TakeLast(40)
+                .ToArray();
+
+            return relevant.Length == 0
+                ? $"\n(No plugin-related lines in {newest.Name}.)"
+                : $"\n--- Jellyfin plugin log ({newest.Name}) ---\n{string.Join('\n', relevant)}";
+        }
+        catch (Exception ex)
+        {
+            return $"\n(Could not read Jellyfin log for diagnostics: {ex.Message})";
+        }
     }
 
     private async Task<string> AuthenticateAdminAsync(HttpClient http, CancellationToken ct)

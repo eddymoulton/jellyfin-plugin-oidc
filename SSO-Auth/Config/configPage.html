@@ -8,7 +8,7 @@
       id="sso-config-page"
       data-role="page"
       class="page type-interior pluginConfigurationPage esqConfigurationPage"
-      data-controller="__plugin/SSO-Auth.js"
+      data-controller="__plugin/OIDC-Auth.js"
     >
       <div data-role="content">
         <div class="content-primary">
@@ -18,7 +18,7 @@
               is="emby-button"
               class="raised button-alt headerHelpButton"
               target="_blank"
-              href="https://github.com/9p4/jellyfin-plugin-sso"
+              href="https://github.com/eddymoulton/jellyfin-plugin-oidc"
               >${Help}</a
             >
           </div>
@@ -27,23 +27,15 @@
             Making changes to this configuration requires a restart of Jellyfin.
             <br />
             This plug-in is in early development, not all configuration options
-            have been implented in the UI, for example, SAML provider
-            configuration has not been implemented.
+            have been implented in the UI.
             <br />
             See the
             <a
               is="emby-linkbutton"
-              href="https://github.com/9p4/jellyfin-plugin-sso"
+              href="https://github.com/eddymoulton/jellyfin-plugin-oidc"
               class="button-link"
               >help page</a
             >
-            and
-            <a
-              is="emby-linkbutton"
-              href="https://github.com/9p4/jellyfin-plugin-sso/projects/1"
-              class="button-link"
-              >roadmap
-            </a>
             for more information.
             <br />
             To allow users to manage their own SSO accounts, including linking

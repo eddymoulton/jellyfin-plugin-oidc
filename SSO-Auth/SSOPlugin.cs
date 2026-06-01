@@ -32,12 +32,12 @@ public class SSOPlugin : BasePlugin<PluginConfiguration>, IPlugin, IHasWebPages
     /// <summary>
     /// Gets the name of the SSO plugin.
     /// </summary>
-    public override string Name => "SSO-Auth";
+    public override string Name => "OIDC-Auth";
 
     /// <summary>
     /// Gets the GUID of the SSO plugin.
     /// </summary>
-    public override Guid Id => Guid.Parse("505ce9d1-d916-42fa-86ca-673ef241d7df");
+    public override Guid Id => Guid.Parse("ef25b893-ba73-4444-928c-01cd0e695ad4");
 
     /// <summary>
     /// Returns the available internal web pages of this plugin.
