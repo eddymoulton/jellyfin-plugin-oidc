@@ -1,13 +1,10 @@
 const ssoConfigLinking = {
-  pluginUniqueId: "505ce9d1-d916-42fa-86ca-673ef241d7df",
+  pluginUniqueId: "ef25b893-ba73-4444-928c-01cd0e695ad4",
   loadProviders: (view) => {
     const provider_list_id = "sso-provider-list";
-    const provider_list_saml_id = `${provider_list_id}-saml`;
     const provider_list_oid_id = `${provider_list_id}-oid`;
 
-    const provider_list_saml = view.querySelector(`#${provider_list_saml_id}`);
     const provider_list_oid = view.querySelector(`#${provider_list_oid_id}`);
-    provider_list_saml.innerHTML = "";
     provider_list_oid.innerHTML = "";
 
     fetch(new Request(ApiClient.getUrl("sso/OID/GetNames"))).then((resp) => {
@@ -16,15 +13,6 @@ const ssoConfigLinking = {
           provider_list_oid,
           config_names,
           "oid",
-        );
-      });
-    });
-    fetch(new Request(ApiClient.getUrl("sso/SAML/GetNames"))).then((resp) => {
-      resp.json().then((config_names) => {
-        ssoConfigLinking.loadProviderList(
-          provider_list_saml,
-          config_names,
-          "saml",
         );
       });
     });
