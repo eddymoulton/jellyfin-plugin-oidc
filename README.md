@@ -8,8 +8,11 @@
 <a href="https://github.com/eddymoulton/jellyfin-plugin-oidc">
 <img alt="GPL 3.0 License" src="https://img.shields.io/github/license/eddymoulton/jellyfin-plugin-oidc.svg"/>
 </a>
-<a href="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/build.yml">
-<img alt="GitHub Actions Build Status" src="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/build.yml/badge.svg"/>
+<a href="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/dotnet-test.yml">
+<img alt="GitHub Actions Build Status" src="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/dotnet-test.yml/badge.svg"/>
+</a>
+<a href="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/publish-nightly.yml">
+<img alt="GitHub Actions Build Status" src="https://github.com/eddymoulton/jellyfin-plugin-oidc/actions/workflows/publish-nightly.yml/badge.svg"/>
 </a>
 <a href="https://github.com/eddymoulton/jellyfin-plugin-oidc/releases">
 <img alt="Current Release" src="https://img.shields.io/github/release/eddymoulton/jellyfin-plugin-oidc.svg"/>
@@ -21,8 +24,6 @@
 <img alt="Main Commits RSS Feed" src="https://img.shields.io/badge/rss-commits-ffa500?logo=rss" />
 </a>
 </p>
-
-Project archived because I'm tired of working on this after all the years.
 
 This plugin allows users to sign in through an SSO provider (such as Google, Microsoft, or your own provider). This enables one-click signin.
 
