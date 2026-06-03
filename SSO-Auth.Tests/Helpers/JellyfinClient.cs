@@ -1,5 +1,7 @@
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Jellyfin.Plugin.SSO_Auth.TestEnv;
 
 namespace Jellyfin.Plugin.SSO_Auth.Tests.Helpers;
@@ -85,8 +87,91 @@ public sealed class JellyfinClient : IDisposable
     return JellyfinUserSummary.From(doc.RootElement);
   }
 
+  /// <summary>
+  /// Sets a user's IsAdministrator flag via the admin API, preserving the rest of their policy.
+  /// </summary>
+  public async Task SetAdministratorAsync(Guid userId, bool isAdmin, CancellationToken ct = default)
+  {
+    using var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/Users/{userId}");
+    getRequest.Headers.TryAddWithoutValidation("Authorization", $"MediaBrowser Token=\"{Token}\"");
+
+    using var getResponse = await _http.SendAsync(getRequest, ct);
+    getResponse.EnsureSuccessStatusCode();
+
+    var userBody = await getResponse.Content.ReadAsStringAsync(ct);
+    using var doc = JsonDocument.Parse(userBody);
+    var policy = JsonNode.Parse(doc.RootElement.GetProperty("Policy").GetRawText())
+        ?? throw new InvalidOperationException("User response missing Policy.");
+    policy["IsAdministrator"] = isAdmin;
+
+    using var postRequest = new HttpRequestMessage(HttpMethod.Post, $"/Users/{userId}/Policy")
+    {
+      Content = new StringContent(policy.ToJsonString(), Encoding.UTF8, "application/json"),
+    };
+    postRequest.Headers.TryAddWithoutValidation("Authorization", $"MediaBrowser Token=\"{Token}\"");
+
+    using var postResponse = await _http.SendAsync(postRequest, ct);
+    postResponse.EnsureSuccessStatusCode();
+  }
+
+  /// <summary>
+  /// Reads a user's folder access policy (EnableAllFolders + EnabledFolders).
+  /// </summary>
+  public async Task<UserFolderPolicy> GetFolderPolicyAsync(Guid userId, CancellationToken ct = default)
+  {
+    using var request = new HttpRequestMessage(HttpMethod.Get, $"/Users/{userId}");
+    request.Headers.TryAddWithoutValidation("Authorization", $"MediaBrowser Token=\"{Token}\"");
+
+    using var response = await _http.SendAsync(request, ct);
+    response.EnsureSuccessStatusCode();
+
+    var body = await response.Content.ReadAsStringAsync(ct);
+    using var doc = JsonDocument.Parse(body);
+    var policy = doc.RootElement.GetProperty("Policy");
+
+    var enableAllFolders = policy.GetProperty("EnableAllFolders").GetBoolean();
+    var enabledFolders = policy.GetProperty("EnabledFolders")
+        .EnumerateArray()
+        .Select(e => Guid.Parse(e.GetString() ?? throw new InvalidOperationException("EnabledFolders entry null")))
+        .ToArray();
+
+    return new UserFolderPolicy(enableAllFolders, enabledFolders);
+  }
+
+  /// <summary>
+  /// Lists Jellyfin's media folders (libraries) as name/id pairs, for translating between
+  /// folder names and the opaque ids that appear in user policies.
+  /// </summary>
+  public async Task<IReadOnlyList<MediaFolder>> GetMediaFoldersAsync(CancellationToken ct = default)
+  {
+    using var request = new HttpRequestMessage(HttpMethod.Get, "/Library/MediaFolders");
+    request.Headers.TryAddWithoutValidation("Authorization", $"MediaBrowser Token=\"{Token}\"");
+
+    using var response = await _http.SendAsync(request, ct);
+    response.EnsureSuccessStatusCode();
+
+    var body = await response.Content.ReadAsStringAsync(ct);
+    using var doc = JsonDocument.Parse(body);
+
+    var folders = new List<MediaFolder>();
+    foreach (var item in doc.RootElement.GetProperty("Items").EnumerateArray())
+    {
+      var id = item.GetProperty("Id").GetString()
+          ?? throw new InvalidOperationException("MediaFolder Id missing");
+      var name = item.GetProperty("Name").GetString()
+          ?? throw new InvalidOperationException("MediaFolder Name missing");
+      folders.Add(new MediaFolder(Guid.Parse(id), name));
+    }
+
+    return folders;
+  }
+
   public void Dispose() => _http.Dispose();
 }
+
+public sealed record MediaFolder(Guid Id, string Name);
+
+public sealed record UserFolderPolicy(bool EnableAllFolders, IReadOnlyList<Guid> EnabledFolders);
 
 public sealed record JellyfinUserSummary(Guid Id, string Name, bool IsAdministrator)
 {

@@ -14,8 +14,11 @@ A snapshot contains:
 - The SSO plugin loaded but with NO provider configurations.
 
 Provider configurations are NOT in the snapshot — they are applied at
-runtime by `scripts/provision.sh` from `seed/dex-provider.json`. This keeps
-SSO config reviewable in source.
+runtime by `scripts/provision.sh`, which registers every `seed/*.json` file
+as a provider named after the file (e.g. `seed/dex.json` -> provider `dex`).
+`folderRoleMapping` entries may reference a library by name (e.g. `"Movies"`);
+provisioning resolves these to the live library id. This keeps SSO config
+reviewable in source.
 
 ## Inventory
 

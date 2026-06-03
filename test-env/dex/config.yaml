@@ -15,6 +15,7 @@ staticClients:
     secret: dev-secret
     redirectURIs:
       - http://localhost:8096/sso/OID/redirect/dex
+      - http://localhost:8096/sso/OID/redirect/dex-folderroles
 
 enablePasswordDB: true
 
@@ -50,3 +51,39 @@ staticPasswords:
     preferredUsername: noaccess
     userID: 00000000-0000-0000-0000-000000000003
     groups: []
+
+  # Single-purpose accounts below are used only by their named test, so those tests don't need a
+  # DB reset - the account's end state doesn't matter to anything else.
+
+  # Admin role + no pre-existing Jellyfin account: promotion test.
+  - email: promote@test.local
+    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+    username: promote
+    name: Promote User
+    emailVerified: true
+    preferredUsername: promote
+    userID: 00000000-0000-0000-0000-000000000004
+    groups:
+      - jellyfin-admin
+
+  # Non-admin role; the demote test makes it an admin out-of-band, then logs in to revoke it.
+  - email: demote@test.local
+    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+    username: demote
+    name: Demote User
+    emailVerified: true
+    preferredUsername: demote
+    userID: 00000000-0000-0000-0000-000000000005
+    groups:
+      - jellyfin-users
+
+  # Folder-roles test: logs into the dex-folderroles provider, which maps jellyfin-users to folders.
+  - email: folderuser@test.local
+    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+    username: folderuser
+    name: Folder Roles User
+    emailVerified: true
+    preferredUsername: folderuser
+    userID: 00000000-0000-0000-0000-000000000006
+    groups:
+      - jellyfin-users
