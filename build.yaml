@@ -1,7 +1,7 @@
 name: "OIDC Authentication"
 guid: "EF25B893-BA73-4444-928C-01CD0E695AD4"
 imageUrl: "https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/main/img/logo.png"
-version: "0.0.0.0"
+version: 0
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "eddymoulton"

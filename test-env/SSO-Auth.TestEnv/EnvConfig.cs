@@ -27,8 +27,8 @@ public sealed record EnvConfig
     /// <summary>Directory holding tar.zst snapshots, one per Jellyfin version.</summary>
     public required string SnapshotsDir { get; init; }
 
-    /// <summary>Seed JSON for the dex OIDC provider, posted to /sso/OID/Add/dex.</summary>
-    public required string DexSeedFile { get; init; }
+    /// <summary>Directory of provider seed files. Each {name}.json is posted to /sso/OID/Add/{name}.</summary>
+    public required string SeedDir { get; init; }
 
     /// <summary>Pinned Jellyfin image tag. Read from $JELLYFIN_VERSION or test-env/.env at Default() time.</summary>
     public required string JellyfinVersion { get; init; }
@@ -84,7 +84,7 @@ public sealed record EnvConfig
             PublishDir = Path.Combine(testEnvDir, ".publish"),
             DataDir = Path.Combine(testEnvDir, ".data"),
             SnapshotsDir = Path.Combine(testEnvDir, "snapshots"),
-            DexSeedFile = Path.Combine(testEnvDir, "seed", "dex-provider.json"),
+            SeedDir = Path.Combine(testEnvDir, "seed"),
             JellyfinVersion = ResolveDotEnvValue(testEnvDir, "JELLYFIN_VERSION", "10.11.10"),
             DexVersion = ResolveDotEnvValue(testEnvDir, "DEX_VERSION", "v2.45.1"),
             JellyfinContainerName = "jellyfin-sso-test",

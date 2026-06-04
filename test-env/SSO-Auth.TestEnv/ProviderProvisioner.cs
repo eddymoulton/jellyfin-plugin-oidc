@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Jellyfin.Plugin.SSO_Auth.TestEnv;
 
@@ -12,13 +13,20 @@ public sealed class ProviderProvisioner(EnvConfig config)
 
     /// <summary>
     /// Idempotent: authenticates as admin, reuses an existing "test-env" API key or mints a new one,
-    /// POSTs the dex seed to /sso/OID/Add/{providerName}, and verifies via /sso/OID/Get.
+    /// then POSTs every seed file in <see cref="EnvConfig.SeedDir"/> to /sso/OID/Add/{name} (where
+    /// {name} is the file name without extension), and verifies all of them via /sso/OID/Get.
     /// </summary>
     public async Task ProvisionAsync(CancellationToken ct = default)
     {
-        if (!File.Exists(config.DexSeedFile))
+        if (!Directory.Exists(config.SeedDir))
         {
-            throw new OrchestrationException($"Missing seed file: {config.DexSeedFile}");
+            throw new OrchestrationException($"Missing seed directory: {config.SeedDir}");
+        }
+
+        var seedFiles = Directory.GetFiles(config.SeedDir, "*.json").OrderBy(f => f).ToArray();
+        if (seedFiles.Length == 0)
+        {
+            throw new OrchestrationException($"No provider seed files (*.json) in {config.SeedDir}");
         }
 
         using var http = new HttpClient { BaseAddress = new Uri(config.JellyfinBaseUrl) };
@@ -32,13 +40,23 @@ public sealed class ProviderProvisioner(EnvConfig config)
         Console.Out.WriteLine("[+] Waiting for SSO plugin routes ...");
         await WaitForPluginRoutesAsync(http, apiKey, ct);
 
-        Console.Out.WriteLine($"[+] Registering provider '{config.ProviderName}' from {Path.GetFileName(config.DexSeedFile)} ...");
-        var seedJson = await File.ReadAllTextAsync(config.DexSeedFile, ct);
-        var addResponse = await http.PostAsync(
-            $"/sso/OID/Add/{config.ProviderName}?api_key={Uri.EscapeDataString(apiKey)}",
-            new StringContent(seedJson, Encoding.UTF8, "application/json"),
-            ct);
-        addResponse.EnsureSuccessStatusCode();
+        Console.Out.WriteLine("[+] Resolving library names ...");
+        var libraryIdsByName = await GetLibraryIdsByNameAsync(http, token, ct);
+
+        var providerNames = new List<string>();
+        foreach (var seedFile in seedFiles)
+        {
+            var providerName = Path.GetFileNameWithoutExtension(seedFile);
+            providerNames.Add(providerName);
+
+            Console.Out.WriteLine($"[+] Registering provider '{providerName}' from {Path.GetFileName(seedFile)} ...");
+            var seedJson = ResolveFolderNames(await File.ReadAllTextAsync(seedFile, ct), libraryIdsByName);
+            var addResponse = await http.PostAsync(
+                $"/sso/OID/Add/{providerName}?api_key={Uri.EscapeDataString(apiKey)}",
+                new StringContent(seedJson, Encoding.UTF8, "application/json"),
+                ct);
+            addResponse.EnsureSuccessStatusCode();
+        }
 
         Console.Out.WriteLine("[+] Verifying provider registration ...");
         var getResponse = await http.GetAsync(
@@ -48,13 +66,87 @@ public sealed class ProviderProvisioner(EnvConfig config)
         var body = await getResponse.Content.ReadAsStringAsync(ct);
 
         using var doc = JsonDocument.Parse(body);
-        if (!doc.RootElement.TryGetProperty(config.ProviderName, out _))
+        foreach (var providerName in providerNames)
         {
-            throw new OrchestrationException(
-                $"Provider '{config.ProviderName}' did not appear in /sso/OID/Get response:\n{body}");
+            if (!doc.RootElement.TryGetProperty(providerName, out _))
+            {
+                throw new OrchestrationException(
+                    $"Provider '{providerName}' did not appear in /sso/OID/Get response:\n{body}");
+            }
         }
 
-        Console.Out.WriteLine($"[+] Provider '{config.ProviderName}' registered.");
+        Console.Out.WriteLine($"[+] Registered providers: {string.Join(", ", providerNames)}.");
+    }
+
+    /// <summary>
+    /// Fetches Jellyfin's media folders (libraries) as a case-insensitive name -> id map, so seed
+    /// files can reference folders by human-readable name instead of opaque ids.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, string>> GetLibraryIdsByNameAsync(HttpClient http, string token, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/Library/MediaFolders");
+        request.Headers.TryAddWithoutValidation("Authorization", $"MediaBrowser Token=\"{token}\"");
+
+        using var response = await http.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(body);
+
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in doc.RootElement.GetProperty("Items").EnumerateArray())
+        {
+            var name = item.GetProperty("Name").GetString();
+            var id = item.GetProperty("Id").GetString();
+            if (name is not null && id is not null)
+            {
+                map[name] = id;
+            }
+        }
+
+        return map;
+    }
+
+    /// <summary>
+    /// Rewrites folderRoleMapping[].folders entries: a value that is already a Guid is kept as-is,
+    /// anything else is treated as a library name and resolved to its id. Unknown names throw, so a
+    /// typo'd library name fails provisioning loudly rather than silently granting nothing.
+    /// </summary>
+    private static string ResolveFolderNames(string seedJson, IReadOnlyDictionary<string, string> libraryIdsByName)
+    {
+        var seed = JsonNode.Parse(seedJson)!.AsObject();
+        if (seed["folderRoleMapping"] is not JsonArray mappings)
+        {
+            return seedJson;
+        }
+
+        foreach (var mapping in mappings.OfType<JsonObject>())
+        {
+            if (mapping["folders"] is not JsonArray folders)
+            {
+                continue;
+            }
+
+            for (var i = 0; i < folders.Count; i++)
+            {
+                var entry = folders[i]?.GetValue<string>();
+                if (entry is null || Guid.TryParse(entry, out _))
+                {
+                    continue;
+                }
+
+                if (!libraryIdsByName.TryGetValue(entry, out var id))
+                {
+                    throw new OrchestrationException(
+                        $"Folder mapping references unknown library '{entry}'. "
+                        + $"Known libraries: {string.Join(", ", libraryIdsByName.Keys)}");
+                }
+
+                folders[i] = id;
+            }
+        }
+
+        return seed.ToJsonString();
     }
 
     /// <summary>

@@ -794,15 +794,42 @@ public class SSOController : ControllerBase
     private async Task<AuthenticationResult> Authenticate(Guid userId, bool isAdmin, bool enableAuthorization, bool enableAllFolders, string[] enabledFolders, bool enableLiveTv, bool enableLiveTvAdmin, AuthResponse authResponse, string defaultProvider, string avatarUrl)
     {
         User user = _userManager.GetUserById(userId);
+
+        // Persist permissions via UpdatePolicyAsync rather than SetPermission + UpdateUserAsync:
+        // on Jellyfin 10.11 the latter does not save the Permissions table (jellyfin/jellyfin#16298).
+        // UpdatePolicyAsync loads the user tracked and uses dbContext.Update(user), persisting the
+        // whole entity graph. Seed from the current policy so only the fields we manage change.
+        var policy = _userManager.GetUserDto(user).Policy;
+
         if (enableAuthorization)
         {
-            user.SetPermission(PermissionKind.IsAdministrator, isAdmin);
-            user.SetPermission(PermissionKind.EnableAllFolders, enableAllFolders);
+            policy.IsAdministrator = isAdmin;
+            policy.EnableAllFolders = enableAllFolders;
             if (!enableAllFolders)
             {
-                user.SetPreference(PreferenceKind.EnabledFolders, enabledFolders);
+                // Folder IDs arrive as strings; UserPolicy needs Guids. Parse once, dropping any unparseable entries.
+                var folderGuids = new List<Guid>(enabledFolders.Length);
+                foreach (var folderId in enabledFolders)
+                {
+                    if (Guid.TryParse(folderId, out var folderGuid))
+                    {
+                        folderGuids.Add(folderGuid);
+                    }
+                }
+
+                policy.EnabledFolders = folderGuids.ToArray();
             }
         }
+
+        policy.EnableLiveTvAccess = enableLiveTv;
+        policy.EnableLiveTvManagement = enableLiveTvAdmin;
+
+        await _userManager.UpdatePolicyAsync(userId, policy).ConfigureAwait(false);
+
+        // UpdatePolicyAsync saved through its own DbContext, so the `user` handle loaded above is
+        // now stale (its row-version no longer matches). Re-fetch before any further UpdateUserAsync,
+        // otherwise the next save throws DbUpdateConcurrencyException ("0 rows affected").
+        user = _userManager.GetUserById(userId);
 
         if (avatarUrl is not null)
         {
@@ -853,9 +880,6 @@ public class SSOController : ControllerBase
                 _logger.LogError(e.Message);
             }
         }
-
-        user.SetPermission(PermissionKind.EnableLiveTvAccess, enableLiveTv);
-        user.SetPermission(PermissionKind.EnableLiveTvManagement, enableLiveTvAdmin);
 
         await _userManager.UpdateUserAsync(user).ConfigureAwait(false);
 
