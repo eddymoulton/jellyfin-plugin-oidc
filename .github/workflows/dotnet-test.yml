@@ -28,7 +28,7 @@ jobs:
           dotnet-version: 9.0.x
 
       - name: Restore
-        run: dotnet restore SSO-Auth.sln
+        run: dotnet restore SSO-Auth.sln --locked-mode
 
       - name: Build
         run: dotnet build SSO-Auth.sln -c Release --no-restore --warnaserror

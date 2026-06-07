@@ -2,11 +2,13 @@
 
 ## Dependencies
 
-This project uses Nix flakes to manage development dependencies. Run `nix develop` to use the same toolchain versions.
+This project is built with .NET, which manages its own runtime — install the [.NET SDK](https://dotnet.microsoft.com/download) and `dotnet restore` will pull down everything else.
+
+A `package.json` in the repo root provides the formatting tooling (Prettier) for the web assets and docs. Run `npm install` once, then `npm run lint`.
 
 ## Building
 
-This is built with .NET 6.0. Build with `dotnet publish .` for the debug release in the `SSO-Auth` directory. Copy over the `IdentityModel.OidcClient.dll`, the `IdentityModel.dll` and the `SSO-Auth.dll` files in the `/bin/Debug/net6.0/publish` directory to a new folder in your Jellyfin configuration: `config/plugins/sso`.
+This is built with .NET 9.0. Build with `dotnet publish .` for the debug release in the `SSO-Auth` directory. Copy over the `IdentityModel.OidcClient.dll`, the `IdentityModel.dll` and the `SSO-Auth.dll` files in the `/bin/Debug/net9.0/publish` directory to a new folder in your Jellyfin configuration: `config/plugins/sso`.
 
 ### VSCode Workflow
 
