@@ -31,16 +31,11 @@ https://user-images.githubusercontent.com/17993169/149681516-f93b43f5-fa5c-4c1f-
 
 Existing users may link new SSO accounts, or remove existing links using self-service at `/SSOViews/linking`.
 
-## Current State:
+## Current State
 
 This is 100% alpha software! PRs are welcome to improve the code.
 
-~~There is NO admin configuration! You must use the API to configure the program!~~ Added by [strazto](https://github.com/strazto) in PR [#18](https://github.com/9p4/jellyfin-plugin-sso/pull/18) and [#27](https://github.com/9p4/jellyfin-plugin-sso/pull/27).
-
 **[This is for Jellyfin >=10.8](https://github.com/9p4/jellyfin-plugin-sso/issues/3) and only on the Web UI or clients supporting [Quick Connect](https://jellyfin.org/docs/general/server/quick-connect)**
-
-**This README reflects the branch it is currently on! Switch tags to view version-specific documentation!**
-
 ## Tested Providers
 
 [Find provider specific documentation in providers.md](providers.md)
@@ -53,15 +48,7 @@ This is 100% alpha software! PRs are welcome to improve the code.
 - Kanidm
 - Google OpenID: Works, but usernames are all numeric
 
-## Supported Protocols
-
-- [OpenID](https://openid.net/developers/how-connect-works/)
-
-> SAML support was removed to reduce the surface area of the plugin. This plugin now supports OpenID Connect only.
-
-## Security
-
-This is my first time writing C# so please take all of the code written here with a grain of salt. This program should be reasonably secure since it validates all information passed from the client with either a certificate or a secret internal state.
+While the above providers are apprently working, I personally only use Authentik (+dex for testing)
 
 ## Installing
 
@@ -73,9 +60,7 @@ Add the stable package repository to your Jellyfin plugin repositories (**Dashbo
 https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/manifest-stable/manifest.json
 ```
 
-Then install **OIDC Authentication** from the plugin catalog!
-
-See [Contributing](#contributing) for instructions on how to build from source.
+Then install **OIDC Authentication** from the plugin catalog.
 
 ### Unstable builds
 
@@ -93,14 +78,11 @@ Unstable builds may have new features unavailable in stable, but **be warned**: 
 
 Builds for individual feature branches are uploaded as artifacts on each branch's GitHub Actions run (named `oidc-<branch>-<sha>.zip`) and must be installed manually. They are not published to any repository.
 
+See [Contributing](#contributing) for instructions on how to build from source.
+
 ## Roadmap
 
-- [x] Admin page
-- [ ] Automated tests
-- [x] Add role/claims support
-- [x] Use canonical usernames instead of preferred usernames
-- [x] Add user self-service
-- [ ] Finalize RBAC access for all user properties
+No planned features.
 
 ## Examples
 
@@ -257,12 +239,18 @@ If you wish to use builds from your own fork, refer to [Installing](#installing)
 
 ## Credits and Thanks
 
-Much thanks to the [Jellyfin LDAP plugin](https://github.com/jellyfin/jellyfin-plugin-ldapauth) for offering a base for me to start on my plugin.
+Credit to [9p4's jellyfin-plugin-sso](https://github.com/9p4/jellyfin-plugin-sso) for forming a solid base to build this off.
 
-I use the [Duende IdentityModel OIDC Client](https://github.com/DuendeSoftware/foss) library for the OpenID side of things.
+I've taken the fork to continue maintaining for my own use, along with removing excess functionality that I did not want to maintain.
 
-Thanks to these projects, without which I would have been pulling my hair out implementing these protocols from scratch.
+This is now intended to be a minimal implementation for OIDC only.
 
-## Something funny about the origins of this plugin
+### Transitive thanks
 
-It totally slipped my mind, but I had [requested this functionality a few years back](https://github.com/jellyfin/jellyfin/issues/2012). What goes around comes around, I guess.
+Credit to those who helped make jellyfin-plugin-sso possible too.
+
+> Much thanks to the [Jellyfin LDAP plugin](https://github.com/jellyfin/jellyfin-plugin-ldapauth) for offering a base for me to start on my plugin.
+> 
+> I use the [Duende IdentityModel OIDC Client](https://github.com/DuendeSoftware/foss) library for the OpenID side of things.
+> 
+> Thanks to these projects, without which I would have been pulling my hair out implementing these protocols from scratch.
