@@ -36,6 +36,7 @@ Existing users may link new SSO accounts, or remove existing links using self-se
 This is 100% alpha software! PRs are welcome to improve the code.
 
 **This is for Jellyfin >=10.11 and only on the Web UI or clients supporting [Quick Connect](https://jellyfin.org/docs/general/server/quick-connect)**
+
 ## Tested Providers
 
 [Find provider specific documentation in docs/providers.md](docs/providers.md)
@@ -107,7 +108,7 @@ This is now intended to be a minimal implementation for OIDC only.
 Credit to those who helped make jellyfin-plugin-sso possible too.
 
 > Much thanks to the [Jellyfin LDAP plugin](https://github.com/jellyfin/jellyfin-plugin-ldapauth) for offering a base for me to start on my plugin.
-> 
+>
 > I use the [Duende IdentityModel OIDC Client](https://github.com/DuendeSoftware/foss) library for the OpenID side of things.
-> 
+>
 > Thanks to these projects, without which I would have been pulling my hair out implementing these protocols from scratch.
