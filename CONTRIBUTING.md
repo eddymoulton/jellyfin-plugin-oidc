@@ -154,7 +154,7 @@ Updating, improving and correcting the documentation
 
 -->
 
-We are always open to better docs! The main place documentation could be improved is the [providers](https://github.com/eddymoulton/jellyfin-plugin-oidc/blob/main/providers.md) documentation. This file keeps track of configurations that are known to work with common SSO providers.
+We are always open to better docs! The main place documentation could be improved is the [providers](https://github.com/eddymoulton/jellyfin-plugin-oidc/blob/main/docs/providers.md) documentation. This file keeps track of configurations that are known to work with common SSO providers.
 
 ## Styleguides
 
