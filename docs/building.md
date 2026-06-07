@@ -2,9 +2,9 @@
 
 ## Dependencies
 
-This project is built with .NET, which manages its own runtime — install the [.NET SDK](https://dotnet.microsoft.com/download) and `dotnet restore` will pull down everything else.
+This project is built with .NET. Install the [.NET SDK](https://dotnet.microsoft.com/download) and run `dotnet restore`.
 
-A `package.json` in the repo root provides the formatting tooling (Prettier) for the web assets and docs. Run `npm install` once, then `npm run lint`.
+A `package.json` in the repo root provides the formatting tooling (Prettier). Run `npm install`, then `npm run lint`.
 
 ## Building
 

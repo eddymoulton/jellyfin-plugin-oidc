@@ -35,7 +35,7 @@ Existing users may link new SSO accounts, or remove existing links using self-se
 
 This is 100% alpha software! PRs are welcome to improve the code.
 
-**[This is for Jellyfin >=10.8](https://github.com/9p4/jellyfin-plugin-sso/issues/3) and only on the Web UI or clients supporting [Quick Connect](https://jellyfin.org/docs/general/server/quick-connect)**
+**This is for Jellyfin >=10.11 and only on the Web UI or clients supporting [Quick Connect](https://jellyfin.org/docs/general/server/quick-connect)**
 ## Tested Providers
 
 [Find provider specific documentation in docs/providers.md](docs/providers.md)
@@ -80,33 +80,19 @@ Builds for individual feature branches are uploaded as artifacts on each branch'
 
 See [Building & Releasing](docs/building.md) for instructions on how to build from source.
 
-## Examples
-
-See [docs/examples.md](docs/examples.md) for setup examples, including creating a login button on the main page and adding an OpenID configuration via the API.
-
-## API Endpoints
-
-The plugin exposes a REST API under the base URL `/sso/`. See [docs/api.md](docs/api.md) for the full endpoint reference and configuration field documentation.
-
 ## Limitations
 
 Logging in with an SSO account that has the same username as an existing Jellyfin account will override the permissions for the user. Use caution when overriding the administrator account!
 
 ~~There is no GUI to sign in. You have to make it yourself! The buttons should redirect to something like this: [https://myjellyfin.example.com/sso/OID/start/clientid](https://myjellyfin.example.com/sso/OID/start/clientid) replacing `clientid` with the provider client ID.~~
 
-~~Furthermore, there is no functional admin page (yet). PRs for this are welcome. In the meantime, you have to interact with the API to add or remove configurations.~~ Added by [strazto](https://github.com/strazto) in PR [#18](https://github.com/9p4/jellyfin-plugin-sso/pull/18) and [#27](https://github.com/9p4/jellyfin-plugin-sso/pull/27).
-
 There is also no logout callback. Logging out of Jellyfin will log you out of Jellyfin only, instead of the SSO provider as well.
-
-~~This only supports Jellyfin on its own domain (for now). This is because I'm using string concatenation for generating some URLs. A PR is welcome to patch this.~~ Fixed in [PR #1](https://github.com/9p4/jellyfin-plugin-sso/pull/1).
-
-**This only works on the web UI**. ~~The user must open the Jellyfin web UI BEFORE using the SSO program to populate some values in the localStorage.~~ Fixed by implementing a comment by [Pfuenzle](https://github.com/Pfuenzle) in [Issue #5](https://github.com/9p4/jellyfin-plugin-sso/issues/5#issuecomment-1041864820).
 
 # Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to report bugs, suggest enhancements, and submit code.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-For building from source, releasing, and CI details, see [docs/building.md](docs/building.md).
+For building from source and releasing, see [docs/building.md](docs/building.md).
 
 # Credits and Thanks
 
