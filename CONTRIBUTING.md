@@ -138,7 +138,7 @@ include Setup of env, IDE and typical getting started instructions?
 
 -->
 
-The project is built with .NET 6. Download it from [here](https://dotnet.microsoft.com/en-us/download).
+The project is built with .NET 9. Download it from [here](https://dotnet.microsoft.com/en-us/download).
 
 Any code editor or IDE with .NET support will work out of the box with this program.
 
@@ -154,7 +154,7 @@ Updating, improving and correcting the documentation
 
 -->
 
-We are always open to better docs! The main place documentation could be improved is the [providers](https://github.com/eddymoulton/jellyfin-plugin-oidc/blob/main/providers.md) documentation. This file keeps track of configurations that are known to work with common SSO providers.
+We are always open to better docs! The main place documentation could be improved is the [providers](https://github.com/eddymoulton/jellyfin-plugin-oidc/blob/main/docs/providers.md) documentation. This file keeps track of configurations that are known to work with common SSO providers.
 
 ## Styleguides
 

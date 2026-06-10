@@ -107,15 +107,15 @@ To do this, we:
 
 - create a **Custom Property Mapping**
 
-  ![image](img/authentik-config-01.jpg)
+  ![image](../img/authentik-config-01.jpg)
 
 - Create a **Scope Mapping**
 
-  ![image](img/authentik-config-02.jpg)
+  ![image](../img/authentik-config-02.jpg)
 
 - Assign the following attributes:
 
-  ![image](img/authentik-config-03.jpg)
+  ![image](../img/authentik-config-03.jpg)
 
   ```yaml
   # A nice, human readable name
@@ -135,13 +135,13 @@ Now we can add this property mapping to authentik's Jellyfin OAuth provider:
 
 - Navigate to `Applications/providers`
 
-  ![image](img/authentik-config-04.jpg)
+  ![image](../img/authentik-config-04.jpg)
 
 - Edit / Update your Jellyfin OAuth provider
 - Verify your **"Redirect URIs/Origins (RegEx)"** follows the format: `https://domain.tld/sso/OID/redirect/Authentik`.
 - Under **"Advanced Protocol Settings"**, add the **Group Membership** Scope
 
-  ![image](img/authentik-config-05.jpg)
+  ![image](../img/authentik-config-05.jpg)
 
 ### Jellyfin's Config
 
@@ -265,7 +265,7 @@ kanidm:
   OidScopes:
     - groups
   RoleClaim: groups
-  AdminsRoles:
+  AdminRoles:
     - jellyfin_admins@idm.example.com
   Roles:
     - jellyfin_users@idm.example.com
