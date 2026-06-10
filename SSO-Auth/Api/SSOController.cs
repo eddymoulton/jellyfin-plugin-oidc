@@ -593,6 +593,15 @@ public class SSOController : ControllerBase
         {
             _logger.LogInformation($"SSO user {canonicalName} doesn't exist, creating...");
             user = await _userManager.CreateUserAsync(canonicalName).ConfigureAwait(false);
+
+            // PATCH: Strip default Jellyfin permissions exactly once on creation
+            // Either permissions will be overwritten by provider, or this will let them default to none
+            // like the text says it does.
+            var policy = _userManager.GetUserDto(user).Policy;
+            policy.EnableAllFolders = false;
+            policy.EnabledFolders = Array.Empty<Guid>();
+            await _userManager.UpdatePolicyAsync(user.Id, policy).ConfigureAwait(false);
+
             user.AuthenticationProviderId = GetType().FullName;
             // https://jonathancrozier.com/blog/how-to-generate-a-cryptographically-secure-random-string-in-dot-net-with-c-sharp
             user.Password = _cryptoProvider.CreatePasswordHash(Convert.ToBase64String(RandomNumberGenerator.GetBytes(64))).ToString();
