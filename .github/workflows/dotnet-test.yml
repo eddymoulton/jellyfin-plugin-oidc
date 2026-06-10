@@ -48,3 +48,29 @@ jobs:
           name: test-results
           path: "**/TestResults/*.trx"
           if-no-files-found: ignore
+
+  report:
+    name: Test report
+    needs: tests
+    runs-on: ubuntu-latest
+    if: always()
+
+    permissions:
+      contents: read
+      checks: write
+
+    steps:
+      - name: Download test results
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        continue-on-error: true
+        with:
+          name: test-results
+          path: test-results
+
+      - name: Publish test report
+        uses: dorny/test-reporter@a6ddd83ac95ff4586f5d3aceeb314d9a1841db95 # v3.0.0
+        with:
+          name: Test report
+          path: "test-results/**/*.trx"
+          reporter: dotnet-trx
+          fail-on-error: false
