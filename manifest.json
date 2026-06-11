@@ -9,6 +9,14 @@
         "imageUrl": "https://raw.githubusercontent.com/eddymoulton/jellyfin-plugin-oidc/main/img/logo.png",
         "versions": [
             {
+                "version": "0.2606.15.0",
+                "changelog": "0.0.0.0 - Forked\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/eddymoulton/jellyfin-plugin-oidc/releases/download/unstable/oidc-authentication_0.2606.15.0.zip",
+                "checksum": "0b4f7a4b72d598de5bc6b71013f3a328",
+                "timestamp": "2026-06-11T12:09:55Z"
+            },
+            {
                 "version": "0.2606.14.0",
                 "changelog": "0.0.0.0 - Forked\n",
                 "targetAbi": "10.11.0.0",
