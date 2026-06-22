@@ -10,6 +10,23 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
 TEST_ENV_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REPO_ROOT="$(cd "${TEST_ENV_DIR}/.." && pwd)"
 
+load_env_defaults() {
+  local file="$1"
+  [[ -f "${file}" ]] || return 0
+  local key value
+  while IFS='=' read -r key value; do
+    key="${key//[[:space:]]/}"
+    [[ -z "${key}" || "${key}" == \#* ]] && continue
+    [[ -n "${!key:-}" ]] && continue
+    value="${value%\"}"
+    value="${value#\"}"
+    export "${key}=${value}"
+  done <"${file}"
+}
+
+load_env_defaults "${TEST_ENV_DIR}/.env"
+load_env_defaults "${REPO_ROOT}/versions.env"
+
 COMPOSE_FILE="${TEST_ENV_DIR}/docker-compose.yml"
 JELLYFIN_BASE_URL="http://localhost:8096"
 ADMIN_USERNAME="admin"
@@ -18,9 +35,12 @@ ADMIN_PASSWORD="admin"
 TEST_ENV_PROJECT="${REPO_ROOT}/test-env/SSO-Auth.TestEnv"
 TEST_ENV_DLL="${TEST_ENV_PROJECT}/bin/Debug/net9.0/SSO-Auth.TestEnv.dll"
 
-log()  { printf "\033[1;34m[+] %s\033[0m\n" "$*"; }
+log() { printf "\033[1;34m[+] %s\033[0m\n" "$*"; }
 warn() { printf "\033[1;33m[!] %s\033[0m\n" "$*" >&2; }
-die()  { printf "\033[1;31m[x] %s\033[0m\n" "$*" >&2; exit 1; }
+die() {
+  printf "\033[1;31m[x] %s\033[0m\n" "$*" >&2
+  exit 1
+}
 
 require_tool() {
   local tool="$1"
@@ -49,7 +69,7 @@ wait_for_jellyfin() {
   local max_attempts=60
   local attempt=0
   log "Waiting for Jellyfin to respond on ${JELLYFIN_BASE_URL} ..."
-  while (( attempt < max_attempts )); do
+  while ((attempt < max_attempts)); do
     if curl -sf -o /dev/null "${JELLYFIN_BASE_URL}/System/Info/Public"; then
       log "Jellyfin is up."
       return 0

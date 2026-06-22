@@ -28,17 +28,32 @@ reviewable in source.
 
 ## Updating
 
-When Jellyfin releases a new version:
+The canonical version pins live in `versions.env` at the repo root:
+
+```
+JELLYFIN_VERSION=10.11.11           # server image the tests run against
+JELLYFIN_SNAPSHOT_VERSION=10.11.10  # snapshot the tests boot from
+```
+
+`JELLYFIN_SNAPSHOT_VERSION` is decoupled from `JELLYFIN_VERSION` on purpose: a
+newer image can boot an older snapshot, migrating its config forward
+in-container at startup. So there are two kinds of update.
+
+**Bump the image only** (e.g. validate a new patch against the existing seed
+config) — raise `JELLYFIN_VERSION` in `versions.env` and leave
+`JELLYFIN_SNAPSHOT_VERSION` alone. No new snapshot is needed; the existing
+`jellyfin-${JELLYFIN_SNAPSHOT_VERSION}.tar.zst` is reused.
+
+**Capture a fresh snapshot for the new version** — migrate the old snapshot
+forward, then point the snapshot pin at it:
 
 ```bash
-# Update the pin
-sed -i '' 's/JELLYFIN_VERSION=.*/JELLYFIN_VERSION=10.11.11/' test-env/.env.example
-
-# Migrate the snapshot forward
+# Migrate the snapshot forward (boots the new image off the old snapshot)
 test-env/scripts/snapshot-refresh.sh 10.11.10 10.11.11
 
-# Update this README's inventory table, then commit:
-#   test-env/.env.example
+# Then set JELLYFIN_SNAPSHOT_VERSION=10.11.11 in versions.env,
+# update the inventory table below, and commit:
+#   versions.env
 #   test-env/snapshots/jellyfin-10.11.11.tar.zst
 #   test-env/snapshots/README.md
 ```
