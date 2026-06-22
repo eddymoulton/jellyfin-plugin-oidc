@@ -30,8 +30,16 @@ public sealed record EnvConfig
     /// <summary>Directory of provider seed files. Each {name}.json is posted to /sso/OID/Add/{name}.</summary>
     public required string SeedDir { get; init; }
 
-    /// <summary>Pinned Jellyfin image tag. Read from $JELLYFIN_VERSION or test-env/.env at Default() time.</summary>
+    /// <summary>
+    /// Pinned Jellyfin image tag — the server version the integration tests run against.
+    /// </summary>
     public required string JellyfinVersion { get; init; }
+
+    /// <summary>
+    /// Pinned Jellyfin snapshot version — selects which snapshots/jellyfin-{version}.tar.zst seed config
+    /// the tests boot from.
+    /// </summary>
+    public required string JellyfinSnapshotVersion { get; init; }
 
     /// <summary>Pinned Dex image tag. Read from $DEX_VERSION or test-env/.env at Default() time.</summary>
     public required string DexVersion { get; init; }
@@ -85,8 +93,9 @@ public sealed record EnvConfig
             DataDir = Path.Combine(testEnvDir, ".data"),
             SnapshotsDir = Path.Combine(testEnvDir, "snapshots"),
             SeedDir = Path.Combine(testEnvDir, "seed"),
-            JellyfinVersion = ResolveDotEnvValue(testEnvDir, "JELLYFIN_VERSION", "10.11.10"),
-            DexVersion = ResolveDotEnvValue(testEnvDir, "DEX_VERSION", "v2.45.1"),
+            JellyfinVersion = ResolveVersion(repoRoot, testEnvDir, "JELLYFIN_VERSION", "10.11.11"),
+            JellyfinSnapshotVersion = ResolveVersion(repoRoot, testEnvDir, "JELLYFIN_SNAPSHOT_VERSION", "10.11.10"),
+            DexVersion = ResolveVersion(repoRoot, testEnvDir, "DEX_VERSION", "v2.45.1"),
             JellyfinContainerName = "jellyfin-sso-test",
             DexContainerName = "dex-sso-test",
             JellyfinHostPort = 8096,
@@ -110,8 +119,8 @@ public sealed record EnvConfig
     /// <summary>Path to the dex config YAML on the host.</summary>
     public string DexConfigFile => Path.Combine(TestEnvDir, "dex", "config.yaml");
 
-    /// <summary>Snapshot path for the currently pinned Jellyfin version.</summary>
-    public string SnapshotPath => Path.Combine(SnapshotsDir, $"jellyfin-{JellyfinVersion}.tar.zst");
+    /// <summary>Snapshot path for the currently pinned snapshot version.</summary>
+    public string SnapshotPath => Path.Combine(SnapshotsDir, $"jellyfin-{JellyfinSnapshotVersion}.tar.zst");
 
     private static string FindRepoRoot()
     {
@@ -130,41 +139,53 @@ public sealed record EnvConfig
             $"Could not locate SSO-Auth.sln by walking up from {AppContext.BaseDirectory}.");
     }
 
-    private static string ResolveDotEnvValue(string testEnvDir, string key, string fallback)
+    /// <summary>
+    /// Resolves a version for the specified key with the priority of
+    /// Env var > local .env > repo .env > fallback value
+    /// </summary>
+    private static string ResolveVersion(string repoRoot, string testEnvDir, string key, string fallback)
     {
-        // Match _lib.sh resolution: $KEY env var wins, then test-env/.env, then the fallback.
         var fromEnv = Environment.GetEnvironmentVariable(key);
         if (!string.IsNullOrWhiteSpace(fromEnv))
         {
             return fromEnv;
         }
 
-        var dotenv = Path.Combine(testEnvDir, ".env");
-        if (File.Exists(dotenv))
+        return ReadDotEnvValue(Path.Combine(testEnvDir, ".env"), key)
+            ?? ReadDotEnvValue(Path.Combine(repoRoot, "versions.env"), key)
+            ?? fallback;
+    }
+
+    /// <summary>Returns the value for <paramref name="key"/> in a KEY=value dotenv file, or null if the file or key is absent.</summary>
+    private static string? ReadDotEnvValue(string path, string key)
+    {
+        if (!File.Exists(path))
         {
-            foreach (var rawLine in File.ReadAllLines(dotenv))
+            return null;
+        }
+
+        foreach (var rawLine in File.ReadAllLines(path))
+        {
+            var line = rawLine.Trim();
+            if (line.Length == 0 || line.StartsWith('#'))
             {
-                var line = rawLine.Trim();
-                if (line.Length == 0 || line.StartsWith('#'))
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                var eq = line.IndexOf('=');
-                if (eq <= 0)
-                {
-                    continue;
-                }
+            var eq = line.IndexOf('=');
+            if (eq <= 0)
+            {
+                continue;
+            }
 
-                var lineKey = line[..eq].Trim();
-                var value = line[(eq + 1)..].Trim().Trim('"');
-                if (lineKey == key && value.Length > 0)
-                {
-                    return value;
-                }
+            var lineKey = line[..eq].Trim();
+            var value = line[(eq + 1)..].Trim().Trim('"');
+            if (lineKey == key && value.Length > 0)
+            {
+                return value;
             }
         }
 
-        return fallback;
+        return null;
     }
 }

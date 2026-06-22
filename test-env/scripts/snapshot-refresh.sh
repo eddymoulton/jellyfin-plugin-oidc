@@ -87,9 +87,10 @@ ls -lh "${OLD_SNAPSHOT}" "${NEW_SNAPSHOT}"
 cat <<EOF
 
 Next:
-  1. Update test-env/.env.example (and your local .env) to set
-       JELLYFIN_VERSION=${NEW_VERSION}
-  2. Update the snapshots README to note the new snapshot.
+  1. Update versions.env to set
+       JELLYFIN_SNAPSHOT_VERSION=${NEW_VERSION}
+     (and JELLYFIN_VERSION too, if you are also bumping the image).
+  2. Update the snapshots README inventory to note the new snapshot.
   3. Review and commit:
-       git add ${NEW_SNAPSHOT#${REPO_ROOT}/} test-env/.env.example test-env/snapshots/README.md
+       git add ${NEW_SNAPSHOT#${REPO_ROOT}/} versions.env test-env/snapshots/README.md
 EOF

@@ -19,13 +19,7 @@ source "$(dirname "$0")/_lib.sh"
 
 require_baseline_tools
 
-# Determine target Jellyfin version (mirrors the compose default).
-JELLYFIN_VERSION="${JELLYFIN_VERSION:-10.11.10}"
-if [[ -f "${TEST_ENV_DIR}/.env" ]]; then
-  # shellcheck disable=SC1091
-  source "${TEST_ENV_DIR}/.env"
-fi
-
+# JELLYFIN_VERSION is loaded by _lib.sh
 SNAPSHOT_PATH="${TEST_ENV_DIR}/snapshots/jellyfin-${JELLYFIN_VERSION}.tar.zst"
 CONFIG_DIR="${TEST_ENV_DIR}/.data/jellyfin/config"
 
