@@ -463,13 +463,17 @@ async function main() {
     document.getElementById('iframe-main').src = '" + punycodeBaseUrl + @"/web/index.html';
 
     var data = '" + data + @"';
-    while (localStorage.getItem(""_deviceId2"") == null ||
-        localStorage.getItem(""jellyfin_credentials"") == null ||
+    while (localStorage.getItem(""jellyfin_credentials"") == null ||
         JSON.parse(localStorage.getItem(""jellyfin_credentials""))['Servers'][0]['Id'] == null) {
         // If localStorage isn't initialized yet, try again.
         await sleep(100);
     }
+    // Generate a device id ourselves if jellyfin-web hasn't set one yet.
     var deviceId = localStorage.getItem(""_deviceId2"");
+    if (!deviceId) {
+        deviceId = window.btoa(navigator.userAgent + '|' + (new Date).getTime()).replaceAll('=', '1');
+        localStorage.setItem(""_deviceId2"", deviceId);
+    }
     var appName = ""Jellyfin Web"";
     var appVersion = ""10.8.0"";
     var deviceName = getDeviceName();
